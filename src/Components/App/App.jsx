@@ -1,24 +1,45 @@
 import React, { Component } from "react";
-// import { v4 as uuidv4 } from "uuid";
-import { axiosArticles } from "../../servises/api";
-import { formatData } from "../../utils/helpers";
+import "react-loader-spinner/dist/loader/css/react-spinner-loader.css";
+import Loader from "react-loader-spinner";
+import { fetchData } from "../../services/api";
+import { AppMain } from "./App.module.css";
+import { formatData, scrollTo } from "../../utils/helpers";
 import Searchbar from "../Searchbar/Searchbar";
 import ImageGallery from "../ImageGallery/ImageGallery";
 import ImageGalleryItem from "../ImageGalleryItem/ImageGalleryItem";
 import Button from "../Button/Button";
+import Overlay from "../Overlay/Overlay";
+import Modal from "../Modal/Modal";
 
 export default class App extends Component {
   state = {
     hits: [],
     query: "",
     page: 1,
+    largeImg: "",
     isLoading: false,
+    isModal: false,
   };
 
-  onSearch = () => {
+  componentDidMount() {
+    window.addEventListener("keyup", this.handleCloseModal);
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    const { query, page } = this.state;
+    if (prevState.query !== query || prevState.page !== page) {
+      this.uponRequest();
+    }
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener("keyup", this.handleCloseModal);
+  }
+
+  uponRequest = () => {
     const { query, page, hits } = this.state;
     this.setState({ isLoading: true });
-    axiosArticles(query, page)
+    fetchData(query, page)
       .then((data) =>
         !hits.length
           ? this.setState({ hits: formatData(data) })
@@ -27,7 +48,12 @@ export default class App extends Component {
             }))
       )
       .catch((error) => console.log(error))
-      .finally(() => this.setState({ isLoading: true }));
+      .finally(() => {
+        this.setState({ isLoading: false });
+        if (hits.length) {
+          scrollTo();
+        }
+      });
   };
 
   onLoadMore = () => {
@@ -38,24 +64,40 @@ export default class App extends Component {
     this.setState({ query: queryForm, hits: [], page: 1 });
   };
 
-  componentDidUpdate(prevProps, prevState) {
-    const { query, page } = this.state;
-    if (prevState.query !== query || prevState.page !== page) {
-      this.onSearch();
+  handleOpenModal = ({ target: { dataset } }) => {
+    this.setState({ largeImg: dataset.largeUrl, isModal: true });
+  };
+
+  handleCloseModal = ({ code, target }) => {
+    if (code === "Escape" || target.dataset.cover === "overlay") {
+      this.setState({ isModal: false });
     }
-  }
+  };
 
   render() {
-    const { hits } = this.state;
+    const { hits, isLoading, isModal, largeImg } = this.state;
     return (
-      <main>
-        <Searchbar onSubmit={this.onSearchForm} onSearch={this.onSearch} />
+      <main className={AppMain}>
+        <Searchbar onSubmit={this.onSearchForm} />
         {hits.length > 0 && (
           <ImageGallery>
-            <ImageGalleryItem images={hits} />
+            <ImageGalleryItem
+              images={hits}
+              onClickModal={this.handleOpenModal}
+            />
           </ImageGallery>
         )}
+        {isLoading && (
+          <Overlay>
+            <Loader type="Rings" color="#3f51b5" height={80} width={80} />
+          </Overlay>
+        )}
         {hits.length > 0 && <Button onLoadMore={this.onLoadMore} />}
+        {isModal && (
+          <Overlay onClickModal={this.handleCloseModal}>
+            <Modal largeImg={largeImg} />
+          </Overlay>
+        )}
       </main>
     );
   }

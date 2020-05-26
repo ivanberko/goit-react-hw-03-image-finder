@@ -1,7 +1,8 @@
 import React from "react";
+import { ImagesGallery } from "./ImageGallery.module.css";
 
 const ImageGallery = ({ children }) => (
-  <ul className="ImageGallery">{children}</ul>
+  <ul className={ImagesGallery}>{children}</ul>
 );
 
 export default ImageGallery;
