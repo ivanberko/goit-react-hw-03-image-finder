@@ -40,11 +40,11 @@ export default class App extends Component {
     const { query, page, hits } = this.state;
     this.setState({ isLoading: true });
     fetchData(query, page)
-      .then((data) =>
+      .then(({data: {hits}}) =>
         !hits.length
-          ? this.setState({ hits: formatData(data) })
+          ? this.setState({ hits: formatData(hits) })
           : this.setState((prevState) => ({
-              hits: [...prevState.hits, ...formatData(data)],
+              hits: [...prevState.hits, ...formatData(hits)],
             }))
       )
       .catch((error) => console.log(error))
